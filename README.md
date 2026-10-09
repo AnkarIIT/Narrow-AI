@@ -46,9 +46,44 @@ Build the intelligence layer first, then specialize per use case later.
 |-------|------|----------------|
 | **Perception** | `core/perception.py` | Input → structured Understanding (intent, entities, sentiment, urgency, confidence) |
 | **Reasoning** | `core/reasoning.py` | Understanding + Context → Decision (what to do: answer, ask, search, act) |
-| **Knowledge** | `core/knowledge.py` | Pluggable knowledge providers (documents, vector search, etc.) |
+| **Knowledge** | `core/knowledge/`, `core/knowledge/vector_store.py` | KnowledgeProvider, DocumentProvider, VectorStore, HybridStore |
 | **Action** | `core/actions.py` | Action providers — app supplies concrete handlers; core only knows WHAT to request |
 | **Learning** | `core/memory.py` | Interaction logging, feedback collection, training data export |
+
+## Model Backends
+
+| Backend | File | Notes |
+|---------|------|-------|
+| **StubBackend** | `core/models/base.py` | Rule-based (keyword matching + templates). Zero deps. For testing. |
+| **HTTPBackend** | `core/models/http.py` | OpenAI-compatible API client (OpenAI, Ollama, vLLM, LMStudio). |
+
+```python
+from narrow_ai.core.models import HTTPBackend
+
+# Ollama (local)
+backend = HTTPBackend(base_url="http://localhost:11434/v1", model="llama3")
+
+# OpenAI
+backend = HTTPBackend(base_url="https://api.openai.com/v1", api_key="sk-...", model="gpt-4o-mini")
+```
+
+## CLI
+
+```bash
+# Interactive mode (stub backend, no API key needed)
+python -m narrow_ai.cli
+
+# With a local Ollama backend
+python -m narrow_ai.cli --backend ollama --model llama3
+
+# With OpenAI
+python -m narrow_ai.cli --backend openai --api-key sk-... --model gpt-4o-mini
+
+# Load a knowledge base from file
+python -m narrow_ai.cli --backend ollama --model llama3 --knowledge data/knowledge.jsonl
+```
+
+Commands in chat: `/help`, `/knowledge add <text>`, `/knowledge search <query>`, `/action list`, `/stats`, `/export <path>`, `/feedback <id> <rating> <text>`, `/backend <stub|openai|ollama>`, `/quit`
 
 ## Design Principles
 
@@ -68,6 +103,8 @@ python examples/demo.py
 
 # Run tests
 python tests/test_core.py
+python tests/test_backends.py
+python tests/test_vector_store.py
 ```
 
 ## Usage
@@ -108,10 +145,10 @@ ai.training_data()  # returns list of {input, intent, entities, response, feedba
 | Phase | Description |
 |-------|-------------|
 | 0 | Define capability boundary |
-| 1 | Build core architecture ← **YOU ARE HERE** |
-| 2 | Build inference pipeline |
-| 3 | Build memory + knowledge interfaces |
-| 4 | Build tool/action interfaces |
+| 1 | Build core architecture |
+| 2 | Build inference pipeline (StubBackend, HTTPBackend) |
+| 3 | Build memory + knowledge interfaces (VectorStore, HybridStore) |
+| 4 | Build tool/action interfaces ← **YOU ARE HERE** |
 | 5 | Collect interaction + feedback data |
 | 6 | Find where base models fail |
 | 7 | Train/fine-tune specialized components |
