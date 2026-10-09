@@ -165,12 +165,15 @@ class NarrowAI:
             args = decision.payload.get("arguments", {})
             result = self._execute_action(action_name, args)
             if result.success:
-                # Use the action result as context and generate a response
-                return self._generate_response(understanding, str(result.data), context)
+                return self._generate_response(
+                    understanding, str(result.data), context,
+                    context_label="Action result:",
+                )
             return self._generate_response(
                 understanding,
                 f"I tried to look that up but encountered an issue: {result.error}",
                 context,
+                context_label="Error:",
             )
 
         elif action == DecisionType.DELEGATE:
@@ -205,21 +208,25 @@ class NarrowAI:
         results: list[Any],
     ) -> str:
         """Generate an answer grounded in knowledge search results."""
-        context_text = "\n\n".join(r.content for r in results)
-        return self._generate_response(understanding, context_text, Context())
+        context_text = "\n\n".join(
+            f"{r.content}" for r in results
+        )
+        return self._generate_response(understanding, context_text, Context(),
+                                        context_label="Knowledge:")
 
     def _generate_response(
         self,
         understanding: Understanding,
         context_text: str,
         context: Context,
+        context_label: str = "Knowledge:",
     ) -> str:
         """Use the model backend to generate a response.
 
         Builds a prompt from the understanding, optional context text,
         and conversation history, then asks the backend to complete.
         """
-        prompt = self._build_prompt(understanding, context_text, context)
+        prompt = self._build_prompt(understanding, context_text, context, context_label)
         return self.model.complete(prompt, intent_hint=understanding.intent)
 
     def _build_prompt(
@@ -227,6 +234,7 @@ class NarrowAI:
         understanding: Understanding,
         context_text: str,
         context: Context,
+        context_label: str = "Knowledge:",
     ) -> str:
         """Construct a response-generation prompt.
 
@@ -250,9 +258,9 @@ class NarrowAI:
                 parts.append(f"  {role}: {content}")
             parts.append("---")
 
-        # Retrieved knowledge
+        # Retrieved knowledge / action result
         if context_text:
-            parts.append(f"Knowledge:\n{context_text}\n---")
+            parts.append(f"{context_label}\n{context_text}\n---")
 
         # Current understanding
         parts.append(f"User intent: {understanding.intent}")
