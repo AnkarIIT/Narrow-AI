@@ -56,17 +56,24 @@ class DocumentProvider(KnowledgeProvider):
 
     def search(self, query: str, top_k: int = 5) -> list[KnowledgeResult]:
         query_lower = query.lower()
+        query_words = [w.strip(".,?!") for w in query_lower.split() if len(w) > 2]
         results: list[KnowledgeResult] = []
         for content, source in self._docs:
-            # Substring match (handles inflections like "refund" → "refunds")
-            if query_lower in content.lower():
+            content_lower = content.lower()
+            # 1. Full substring match
+            if query_lower in content_lower:
                 score = 1.0
             else:
-                # Fall back to word-level overlap
-                words = set(w for w in query_lower.split() if len(w) > 2)
-                doc_words = set(content.lower().split())
-                overlap = words & doc_words
-                score = len(overlap) / max(len(words), 1) if words else 0.0
+                # 2. Word-level overlap with substring matching
+                #    (handles inflections: "refund" matches "refunds")
+                doc_words = [w.strip(".,?!") for w in content_lower.split()]
+                matches = 0
+                for qw in query_words:
+                    for dw in doc_words:
+                        if qw in dw or dw in qw:
+                            matches += 1
+                            break
+                score = matches / max(len(query_words), 1) if query_words else 0.0
             if score > 0:
                 results.append(KnowledgeResult(
                     content=content[:500],  # truncate for context
