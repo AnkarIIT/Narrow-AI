@@ -1,0 +1,21 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "narrow-ai"
+version = "0.1.0"
+description = "General-purpose narrow AI core engine"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = []
+
+[project.optional-dependencies]
+dev = ["pytest>=7.0"]
+ml = ["torch>=2.0", "transformers>=4.35", "sentence-transformers>=2.2"]
+rag = ["faiss-cpu>=1.7", "chromadb>=0.4"]
+yaml = ["pyyaml>=6.0"]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["narrow_ai*"]
