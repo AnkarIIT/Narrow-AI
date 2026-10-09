@@ -13,7 +13,6 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import Any
-from narrow_ai.core.models.base import ModelBackend
 
 
 @dataclass
@@ -118,3 +117,16 @@ class KnowledgeHub(KnowledgeProvider):
             if result:
                 return result
         return None
+
+
+# Import vector store at the bottom to avoid circular dependency
+from narrow_ai.core.knowledge.vector_store import VectorStore, HybridStore
+
+__all__ = [
+    "KnowledgeProvider",
+    "KnowledgeResult",
+    "DocumentProvider",
+    "KnowledgeHub",
+    "VectorStore",
+    "HybridStore",
+]
