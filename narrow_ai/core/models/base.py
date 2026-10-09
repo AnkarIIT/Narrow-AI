@@ -139,16 +139,74 @@ class StubBackend(ModelBackend):
 
     # --- complete --------------------------------------------------------
     def complete(self, prompt: str, **kwargs: Any) -> str:
-        """Template + keyword completion for stubbing."""
-        intent_hint = kwargs.get("intent_hint", "")
+        """Context-aware completion using prompt content.
+
+        Extracts the Knowledge section and entity info from the structured
+        prompt, then generates a relevant response using templates or
+        the extracted context.
+        """
+        intent_hint = kwargs.get("intent_hint", "default")
+
+        # Extract Knowledge section from the prompt
+        knowledge_text = self._extract_section(prompt, "Knowledge:")
+
+        # Extract entity value for template substitution
+        entity_val = self._extract_entity(prompt)
+
+        # Extract action result if present
+        action_result = self._extract_section(prompt, "Action result:")
+
+        # If we have knowledge, use it in the response
+        if knowledge_text:
+            templates = self._RESPONSE_TEMPLATES.get(intent_hint, [])
+            if not templates:
+                return self._RESPONSE_TEMPLATES["default"][0]
+            base = templates[0]
+            if "{entity}" in base:
+                base = base.replace("{entity}", entity_val)
+            return f"{base} {knowledge_text[:200]}"
+
+        # If we have an action result, use it directly
+        if action_result:
+            return f"Here's the result: {action_result[:300]}"
+
+        # Fall back to standard template
         templates = self._RESPONSE_TEMPLATES.get(intent_hint, self._RESPONSE_TEMPLATES["default"])
-        return templates[0]
+        response = templates[0]
+        return response.replace("{entity}", entity_val)
+
+    @staticmethod
+    def _extract_section(prompt: str, marker: str) -> str:
+        """Extract text between a marker line and the next '---' or section header."""
+        if marker not in prompt:
+            return ""
+        start = prompt.index(marker) + len(marker)
+        rest = prompt[start:]
+        end_markers = ["---", "User intent:", "Entities:", "Respond to"]
+        end = len(rest)
+        for em in end_markers:
+            idx = rest.find(em)
+            if idx != -1:
+                end = min(end, idx)
+        return rest[:end].strip()
+
+    @staticmethod
+    def _extract_entity(prompt: str) -> str:
+        """Extract the first entity value from 'Entities: {...}' line."""
+        import re
+        match = re.search(r"'object':\\s*'([^']+)'", prompt)
+        if match:
+            return match.group(1)
+        match = re.search(r"'time_reference':\\s*'([^']+)'", prompt)
+        if match:
+            return match.group(1)
+        return "request"
 
     def embed(self, text: str) -> list[float]:
-        """Deterministic hash-based embedding (32-dim). Not semantic, just stable."""
+        """Deterministic hash-based embedding (8-dim). Not semantic, just stable."""
         import hashlib, struct
-        h = hashlib.md5(text.encode("utf-8")).digest()
-        vec = list(struct.unpack("8f", h))
+        h = hashlib.sha256(text.encode("utf-8")).digest()[:32]  # 32 bytes
+        vec = list(struct.unpack("8f", h))  # 8 floats
         # Normalise
         norm = sum(v * v for v in vec) ** 0.5 or 1.0
         return [v / norm for v in vec]
