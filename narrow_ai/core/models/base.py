@@ -164,7 +164,7 @@ class StubBackend(ModelBackend):
             base = templates[0]
             if "{entity}" in base:
                 base = base.replace("{entity}", entity_val)
-            return f"{base} {knowledge_text[:200]}"
+            return f"{base} {knowledge_text[:500]}"
 
         # If we have an action result, use it directly
         if action_result:
