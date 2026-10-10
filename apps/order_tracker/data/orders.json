@@ -1,0 +1,28 @@
+{
+  "orders": {
+    "ORD-001": {
+      "status": "shipped",
+      "date": "2024-11-05",
+      "delivery_date": "2024-11-12",
+      "location": "Mumbai",
+      "items": ["Wireless Mouse", "USB-C Cable"],
+      "price": 1299
+    },
+    "ORD-002": {
+      "status": "processing",
+      "date": "2024-11-08",
+      "delivery_date": "2024-11-18",
+      "location": "Delhi",
+      "items": ["Mechanical Keyboard"],
+      "price": 4599
+    },
+    "ORD-003": {
+      "status": "delivered",
+      "date": "2024-10-20",
+      "delivery_date": "2024-10-25",
+      "location": "Bangalore",
+      "items": ["Webcam 1080p"],
+      "price": 2499
+    }
+  }
+}
